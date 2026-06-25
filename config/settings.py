@@ -159,3 +159,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'rajghag12728@gmail.com'
 EMAIL_HOST_PASSWORD = 'brabfdpelcjrliru'
 DEFAULT_FROM_EMAIL = 'rajghag12728@gmail.com'
+
+import os
+ENABLE_FACE_VERIFICATION = os.environ.get('ENABLE_FACE_VERIFICATION', 'True').lower() == 'true'

@@ -15,7 +15,7 @@ from rest_framework.parsers import (
     FormParser
 )
 
-from deepface import DeepFace
+
 
 from employees.models import Employee
 
@@ -158,37 +158,39 @@ def check_in(request):
         selfie=selfie
     )
 
-    try:
+    from django.conf import settings
+    if settings.ENABLE_FACE_VERIFICATION:
+        try:
+            from deepface import DeepFace
+            result = DeepFace.verify(
+                img1_path=employee.profile_image.path,
+                img2_path=attendance.selfie.path,
+                model_name="Facenet512",
+                enforce_detection=False
+            )
 
-        result = DeepFace.verify(
-            img1_path=employee.profile_image.path,
-            img2_path=attendance.selfie.path,
-            model_name="Facenet512",
-            enforce_detection=False
-        )
+            if not result["verified"]:
 
-        if not result["verified"]:
+                attendance.delete()
+
+                return Response(
+                    {
+                        "message": "Face does not match"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Exception as e:
 
             attendance.delete()
 
             return Response(
                 {
-                    "message": "Face does not match"
+                    "message": "Face verification failed",
+                    "error": str(e)
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-    except Exception as e:
-
-        attendance.delete()
-
-        return Response(
-            {
-                "message": "Face verification failed",
-                "error": str(e)
-            },
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
     serializer = AttendanceSerializer(
         attendance,
