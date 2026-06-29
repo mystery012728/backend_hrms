@@ -9,3 +9,8 @@ opencv-python-headless==4.10.0.84
 gunicorn==26.0.0
 whitenoise==6.8.2
 pillow==10.4.0
+tensorflow==2.16.2
+tf_keras==2.16.0
+deepface==0.0.100
+pandas==3.0.3
+gdown==6.1.0
