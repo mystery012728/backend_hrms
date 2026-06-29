@@ -33,6 +33,12 @@ class Attendance(models.Model):
         upload_to='attendance/'
     )
 
+    checkout_selfie = models.ImageField(
+        upload_to='attendance_checkout/',
+        null=True,
+        blank=True
+    )
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

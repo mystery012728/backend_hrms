@@ -21,7 +21,7 @@ from employees.models import Employee
 
 from .models import Attendance
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from .serializers import AttendanceSerializer, CheckInRequestSerializer
+from .serializers import AttendanceSerializer, CheckInRequestSerializer, CheckOutRequestSerializer
 
 
 @extend_schema(
@@ -204,11 +204,12 @@ def check_in(request):
 
 
 @extend_schema(
-    request=None,
+    request=CheckOutRequestSerializer,
     responses={200: AttendanceSerializer}
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def check_out(request):
 
     employee = Employee.objects.get(
@@ -231,9 +232,83 @@ def check_out(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    attendance.check_out = timezone.now()
+    checkout_selfie = request.FILES.get('checkout_selfie')
 
+    if not checkout_selfie:
+
+        return Response(
+            {
+                "message": "Checkout selfie is required"
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    from employees.utils import has_face
+    if not has_face(checkout_selfie):
+
+        return Response(
+            {
+                "message": "Image should contain Person face"
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not employee.profile_image:
+
+        return Response(
+            {
+                "message": "Employee profile image not found"
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    attendance.check_out = timezone.now()
+    attendance.checkout_selfie = checkout_selfie
     attendance.save()
+
+    from django.conf import settings
+    if settings.ENABLE_FACE_VERIFICATION:
+        try:
+            from deepface import DeepFace
+            result = DeepFace.verify(
+                img1_path=employee.profile_image.path,
+                img2_path=attendance.checkout_selfie.path,
+                model_name="Facenet512",
+                enforce_detection=False
+            )
+
+            if not result["verified"]:
+
+                # Revert check-out changes
+                attendance.check_out = None
+                if attendance.checkout_selfie:
+                    attendance.checkout_selfie.delete(save=False)
+                attendance.checkout_selfie = None
+                attendance.save()
+
+                return Response(
+                    {
+                        "message": "Face does not match"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Exception as e:
+
+            # Revert check-out changes
+            attendance.check_out = None
+            if attendance.checkout_selfie:
+                attendance.checkout_selfie.delete(save=False)
+            attendance.checkout_selfie = None
+            attendance.save()
+
+            return Response(
+                {
+                    "message": "Face verification failed",
+                    "error": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     serializer = AttendanceSerializer(
         attendance,

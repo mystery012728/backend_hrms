@@ -5,6 +5,7 @@ from .models import Attendance
 class AttendanceSerializer(serializers.ModelSerializer):
 
     selfie = serializers.SerializerMethodField()
+    checkout_selfie = serializers.SerializerMethodField()
 
     class Meta:
         model = Attendance
@@ -21,6 +22,21 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
         return None
 
+    def get_checkout_selfie(self, obj):
+
+        request = self.context.get('request')
+
+        if obj.checkout_selfie:
+            return request.build_absolute_uri(
+                obj.checkout_selfie.url
+            )
+
+        return None
+
 
 class CheckInRequestSerializer(serializers.Serializer):
     selfie = serializers.ImageField(help_text="Selfie image of the employee checking in")
+
+
+class CheckOutRequestSerializer(serializers.Serializer):
+    checkout_selfie = serializers.ImageField(help_text="Selfie image of the employee checking out")
