@@ -8,3 +8,4 @@ numpy==1.26.4
 opencv-python-headless==4.10.0.84
 gunicorn==26.0.0
 whitenoise==6.8.2
+pillow==10.4.0
