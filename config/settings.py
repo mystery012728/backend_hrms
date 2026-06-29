@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'attendance',
     'leaves',
     'holidays',
+    'profiles',
     'drf_spectacular',
 ]
 

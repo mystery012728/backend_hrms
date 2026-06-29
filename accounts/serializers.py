@@ -5,16 +5,12 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField()
 
 
-class EmployeeLoginDataSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    role = serializers.CharField()
-    company = serializers.CharField(allow_null=True)
-
+from profiles.serializers import ProfileSerializer
 
 class LoginResponseSerializer(serializers.Serializer):
     refresh = serializers.CharField()
     access = serializers.CharField()
-    employee = EmployeeLoginDataSerializer(allow_null=True)
+    employee = ProfileSerializer(allow_null=True)
 
 
 class SendOTPSerializer(serializers.Serializer):

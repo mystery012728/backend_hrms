@@ -53,11 +53,8 @@ def login(request):
 
     try:
         employee = Employee.objects.get(user=user)
-        employee_data = {
-            "name": employee.name,
-            "role": employee.role,
-            "company": employee.company.name if employee.company else None,
-        }
+        from profiles.serializers import ProfileSerializer
+        employee_data = ProfileSerializer(employee, context={'request': request}).data
     except Employee.DoesNotExist:
         employee_data = None
 
