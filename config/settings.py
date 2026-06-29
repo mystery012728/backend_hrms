@@ -42,6 +42,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'Interactive API documentation for Human Resource Management System V2',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 SIMPLE_JWT = {
