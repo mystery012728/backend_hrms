@@ -15,6 +15,7 @@ from .serializers import LoginSerializer, LoginResponseSerializer
 
 
 @extend_schema(
+    auth=[],
     request=LoginSerializer,
     responses={200: LoginResponseSerializer}
 )
@@ -76,6 +77,7 @@ from .serializers import SendOTPSerializer, VerifyOTPSerializer, ResetPasswordSe
 
 
 @extend_schema(
+    auth=[],
     request=SendOTPSerializer,
     responses={200: MessageResponseSerializer}
 )
@@ -131,6 +133,7 @@ def send_otp(request):
 
 
 @extend_schema(
+    auth=[],
     request=VerifyOTPSerializer,
     responses={200: MessageResponseSerializer}
 )
@@ -169,6 +172,7 @@ def verify_otp(request):
 
 
 @extend_schema(
+    auth=[],
     request=ResetPasswordSerializer,
     responses={200: MessageResponseSerializer}
 )
