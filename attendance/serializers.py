@@ -6,6 +6,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
 
     selfie = serializers.SerializerMethodField()
     checkout_selfie = serializers.SerializerMethodField()
+    totalworktime = serializers.SerializerMethodField()
 
     class Meta:
         model = Attendance
@@ -31,6 +32,15 @@ class AttendanceSerializer(serializers.ModelSerializer):
                 obj.checkout_selfie.url
             )
 
+        return None
+
+    def get_totalworktime(self, obj):
+        if obj.check_in and obj.check_out:
+            duration = obj.check_out - obj.check_in
+            total_seconds = int(duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            return f"{hours:02d}:{minutes:02d}"
         return None
 
 

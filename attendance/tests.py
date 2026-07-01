@@ -103,3 +103,31 @@ class AttendanceAPITests(APITestCase):
         # In Django/DRF, manually setting content_type to 'multipart/form-data' causes MultiPartParserError,
         # which usually raises ParseError/MultiPartParserError.
 
+    def test_total_work_time_calculation(self):
+        now = timezone.now()
+        check_in_time = now - timedelta(hours=8, minutes=30)
+        check_out_time = now
+        
+        attendance = Attendance.objects.create(
+            employee=self.employee,
+            status="PRESENT",
+            check_in=check_in_time,
+            check_out=check_out_time
+        )
+        
+        response = self.client.get('/attendance/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = [item for item in response.data if item['id'] == attendance.id][0]
+        self.assertEqual(data['totalworktime'], "08:30")
+
+        # Create attendance with only check_in (no check_out)
+        attendance_no_checkout = Attendance.objects.create(
+            employee=self.employee,
+            status="PRESENT",
+            check_in=now
+        )
+        response = self.client.get('/attendance/')
+        data_no_checkout = [item for item in response.data if item['id'] == attendance_no_checkout.id][0]
+        self.assertIsNone(data_no_checkout['totalworktime'])
+
+
