@@ -22,6 +22,18 @@ from employees.models import Employee
 from .models import Attendance
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .serializers import AttendanceSerializer, CheckInRequestSerializer, CheckOutRequestSerializer
+from django.conf import settings
+
+# Preload DeepFace and warm up the ArcFace model at startup (module load time)
+# to shift the heavy initialization cost out of the request-response lifecycle.
+DeepFace = None
+if getattr(settings, 'ENABLE_FACE_VERIFICATION', False):
+    try:
+        from deepface import DeepFace
+        DeepFace.build_model("ArcFace")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not preload DeepFace/ArcFace: {e}")
 
 
 @extend_schema(
@@ -178,10 +190,10 @@ def check_in(request):
         selfie=selfie
     )
 
-    from django.conf import settings
     if settings.ENABLE_FACE_VERIFICATION:
         try:
-            from deepface import DeepFace
+            if DeepFace is None:
+                raise ImportError("DeepFace is not imported or initialization failed")
             result = DeepFace.verify(
                 img1_path=employee.profile_image.path,
                 img2_path=attendance.selfie.path,
@@ -294,10 +306,10 @@ def check_out(request):
     attendance.checkout_selfie = checkout_selfie
     attendance.save()
 
-    from django.conf import settings
     if settings.ENABLE_FACE_VERIFICATION:
         try:
-            from deepface import DeepFace
+            if DeepFace is None:
+                raise ImportError("DeepFace is not imported or initialization failed")
             result = DeepFace.verify(
                 img1_path=employee.profile_image.path,
                 img2_path=attendance.checkout_selfie.path,
