@@ -151,7 +151,9 @@ def check_in(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    from employees.utils import has_face
+    from employees.utils import has_face, resize_uploaded_image
+    selfie = resize_uploaded_image(selfie)
+    
     if not has_face(selfie):
 
         return Response(
@@ -267,7 +269,9 @@ def check_out(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    from employees.utils import has_face
+    from employees.utils import has_face, resize_uploaded_image
+    checkout_selfie = resize_uploaded_image(checkout_selfie)
+    
     if not has_face(checkout_selfie):
 
         return Response(

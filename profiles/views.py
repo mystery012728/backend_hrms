@@ -51,7 +51,8 @@ def update_profile(request):
 
     profile_image = request.FILES.get('profile_image')
     if profile_image:
-        from employees.utils import has_face
+        from employees.utils import has_face, resize_uploaded_image
+        profile_image = resize_uploaded_image(profile_image)
         if not has_face(profile_image):
             return Response(
                 {"message": "Image should contain Person face"},

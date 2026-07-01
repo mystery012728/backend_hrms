@@ -36,3 +36,50 @@ def has_face(image_file):
         return len(faces) > 0
     except Exception:
         return False
+
+
+from PIL import Image
+import io
+from django.core.files.uploadedfile import InMemoryUploadedFile
+
+def resize_uploaded_image(uploaded_file, max_size=600):
+    if not uploaded_file:
+        return uploaded_file
+    try:
+        # Seek back to start of file in case it has been read before
+        uploaded_file.seek(0)
+        
+        # Read the file into PIL
+        img = Image.open(uploaded_file)
+        
+        # Only resize if the dimensions are larger than the max_size
+        if img.width > max_size or img.height > max_size:
+            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+            
+            # Save back to an in-memory buffer
+            buffer = io.BytesIO()
+            # Convert to RGB (to drop alpha channel if any) and save as JPEG
+            img.convert("RGB").save(buffer, format="JPEG", quality=85)
+            buffer.seek(0)
+            
+            # Construct a new InMemoryUploadedFile
+            new_file = InMemoryUploadedFile(
+                file=buffer,
+                field_name=uploaded_file.field_name,
+                name=uploaded_file.name,
+                content_type="image/jpeg",
+                size=buffer.getbuffer().nbytes,
+                charset=None
+            )
+            return new_file
+    except Exception:
+        pass
+    
+    # Seek back to start so other readers can use the file
+    try:
+        uploaded_file.seek(0)
+    except Exception:
+        pass
+        
+    return uploaded_file
+
