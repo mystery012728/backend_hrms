@@ -38,7 +38,7 @@ def has_face(image_file):
         return False
 
 
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
@@ -52,14 +52,37 @@ def resize_uploaded_image(uploaded_file, max_size=600):
         # Read the file into PIL
         img = Image.open(uploaded_file)
         
-        # Only resize if the dimensions are larger than the max_size
-        if img.width > max_size or img.height > max_size:
-            img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        # Check if the image has EXIF orientation tag
+        has_exif = False
+        try:
+            exif = img._getexif()
+            if exif and 274 in exif:
+                has_exif = True
+        except Exception:
+            pass
+            
+        # Transpose if it has EXIF orientation tag
+        transposed_img = ImageOps.exif_transpose(img)
+        
+        # We process/save the image if:
+        # 1. It exceeds the max_size (needs resizing)
+        # 2. It was transposed (orientation changed)
+        # 3. Or it's not a JPEG (to standardize to JPEG)
+        needs_processing = (
+            img.width > max_size or 
+            img.height > max_size or 
+            has_exif or 
+            img.format != 'JPEG'
+        )
+        
+        if needs_processing:
+            if transposed_img.width > max_size or transposed_img.height > max_size:
+                transposed_img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
             
             # Save back to an in-memory buffer
             buffer = io.BytesIO()
             # Convert to RGB (to drop alpha channel if any) and save as JPEG
-            img.convert("RGB").save(buffer, format="JPEG", quality=85)
+            transposed_img.convert("RGB").save(buffer, format="JPEG", quality=85)
             buffer.seek(0)
             
             # Construct a new InMemoryUploadedFile
