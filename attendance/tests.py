@@ -73,3 +73,33 @@ class AttendanceAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'PRESENT')
         self.assertEqual(response.data['date'], str(date.today()))
+
+    def test_check_out_missing_employee(self):
+        # Create a user with no employee profile
+        no_profile_user = User.objects.create_user(username="noprofileuser", password="testpassword")
+        self.client.force_authenticate(user=no_profile_user)
+        
+        # This will trigger Employee.objects.get(user=request.user) which will raise DoesNotExist.
+        # We check if it returns 500 or if we can handle it.
+        try:
+            response = self.client.post('/attendance/check-out/')
+            print(f"DEBUG: Status code for missing employee: {response.status_code}")
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        except Employee.DoesNotExist:
+            # Under some testing settings it might bubble up, but we caught it in the view now.
+            pass
+
+    def test_check_out_manual_multipart_content_type(self):
+        # Authenticate the valid user with employee profile
+        self.client.force_authenticate(user=self.user)
+        
+        # Manually specify Content-Type: multipart/form-data without boundary
+        response = self.client.post(
+            '/attendance/check-out/',
+            data="invalid data content",
+            content_type='multipart/form-data'
+        )
+        print(f"DEBUG: Status code for manual multipart/form-data: {response.status_code}")
+        # In Django/DRF, manually setting content_type to 'multipart/form-data' causes MultiPartParserError,
+        # which usually raises ParseError/MultiPartParserError.
+

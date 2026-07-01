@@ -35,9 +35,15 @@ from .serializers import AttendanceSerializer, CheckInRequestSerializer, CheckOu
 @permission_classes([IsAuthenticated])
 def attendance_list(request):
 
-    employee = Employee.objects.get(
-        user=request.user
-    )
+    try:
+        employee = Employee.objects.get(
+            user=request.user
+        )
+    except Employee.DoesNotExist:
+        return Response(
+            {"message": "Employee profile not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     start_date = request.query_params.get('start_date')
     end_date = request.query_params.get('end_date')
@@ -66,9 +72,15 @@ def attendance_list(request):
 @permission_classes([IsAuthenticated])
 def todays_attendance(request):
 
-    employee = Employee.objects.get(
-        user=request.user
-    )
+    try:
+        employee = Employee.objects.get(
+            user=request.user
+        )
+    except Employee.DoesNotExist:
+        return Response(
+            {"message": "Employee profile not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     today = timezone.now().date()
 
@@ -102,9 +114,15 @@ def todays_attendance(request):
 @parser_classes([MultiPartParser, FormParser])
 def check_in(request):
 
-    employee = Employee.objects.get(
-        user=request.user
-    )
+    try:
+        employee = Employee.objects.get(
+            user=request.user
+        )
+    except Employee.DoesNotExist:
+        return Response(
+            {"message": "Employee profile not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     today = timezone.now().date()
 
@@ -165,7 +183,7 @@ def check_in(request):
             result = DeepFace.verify(
                 img1_path=employee.profile_image.path,
                 img2_path=attendance.selfie.path,
-                model_name="Facenet512",
+                model_name="ArcFace",
                 enforce_detection=False
             )
 
@@ -212,9 +230,15 @@ def check_in(request):
 @parser_classes([MultiPartParser, FormParser])
 def check_out(request):
 
-    employee = Employee.objects.get(
-        user=request.user
-    )
+    try:
+        employee = Employee.objects.get(
+            user=request.user
+        )
+    except Employee.DoesNotExist:
+        return Response(
+            {"message": "Employee profile not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     today = timezone.now().date()
 
@@ -273,7 +297,7 @@ def check_out(request):
             result = DeepFace.verify(
                 img1_path=employee.profile_image.path,
                 img2_path=attendance.checkout_selfie.path,
-                model_name="Facenet512",
+                model_name="ArcFace",
                 enforce_detection=False
             )
 
