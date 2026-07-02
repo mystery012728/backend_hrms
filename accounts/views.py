@@ -107,10 +107,16 @@ def send_otp(request):
 
     # Verify user exists with this email
     if not User.objects.filter(email=email).exists():
-        return Response(
-            {"message": "User with this email does not exist"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        # Self-healing: check if Employee has this email and sync
+        employee = Employee.objects.filter(email=email).first()
+        if employee and employee.user:
+            employee.user.email = email
+            employee.user.save()
+        else:
+            return Response(
+                {"message": "User with this email does not exist"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     # Generate 6-digit OTP
     otp = f"{random.randint(100000, 999999)}"
@@ -220,10 +226,17 @@ def reset_password(request):
     # Update password for user(s) with this email
     users = User.objects.filter(email=email)
     if not users.exists():
-        return Response(
-            {"message": "User not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        # Self-healing: check if Employee has this email and sync
+        employee = Employee.objects.filter(email=email).first()
+        if employee and employee.user:
+            employee.user.email = email
+            employee.user.save()
+            users = User.objects.filter(email=email)
+        else:
+            return Response(
+                {"message": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     for user in users:
         user.set_password(new_password)

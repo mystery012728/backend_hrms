@@ -90,7 +90,7 @@ class ForgotPasswordAPITests(APITestCase):
 
         # Check user password has updated (try login)
         login_data = {
-            "email": "test@hrms.com",
+            "username_or_email": "test@hrms.com",
             "password": "new_secure_password"
         }
         login_response = self.client.post('/accounts/login/', login_data, format='json')
@@ -115,3 +115,53 @@ class ForgotPasswordAPITests(APITestCase):
         response = self.client.post('/accounts/reset-password/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("OTP has not been verified", response.data['message'])
+
+    def test_auto_create_user_and_credentials_via_signal(self):
+        # Delete existing employee to avoid unique constraints if any
+        Employee.objects.filter(email="signaluser@hrms.com").delete()
+        User.objects.filter(username="signaluser").delete()
+        
+        # Create employee without a user
+        emp = Employee.objects.create(
+            name="Signal User",
+            email="signaluser@hrms.com",
+            phone="1234567890",
+            role="EMPLOYEE",
+            designation="Developer",
+            department="IT",
+            joining_date=date.today()
+        )
+        
+        # Verify a User was automatically created and associated
+        self.assertIsNotNone(emp.user)
+        self.assertEqual(emp.user.email, "signaluser@hrms.com")
+        self.assertTrue(User.objects.filter(email="signaluser@hrms.com").exists())
+
+    def test_otp_self_healing_email(self):
+        # Create a user with NO email, and an associated Employee with an email
+        User.objects.filter(username="noemailuser").delete()
+        user_no_email = User.objects.create_user(username="noemailuser", password="password123")
+        self.assertEqual(user_no_email.email, "")
+        
+        Employee.objects.filter(email="healed@hrms.com").delete()
+        Employee.objects.create(
+            user=user_no_email,
+            name="No Email User",
+            email="healed@hrms.com",
+            phone="1234567890",
+            role="EMPLOYEE",
+            designation="Developer",
+            department="IT",
+            joining_date=date.today()
+        )
+        
+        # Initially, User doesn't have the email
+        self.assertFalse(User.objects.filter(email="healed@hrms.com").exists())
+        
+        # Call send-otp
+        response = self.client.post('/accounts/send-otp/', {"email": "healed@hrms.com"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # User should now have the email field populated (self-healed!)
+        user_no_email.refresh_from_db()
+        self.assertEqual(user_no_email.email, "healed@hrms.com")

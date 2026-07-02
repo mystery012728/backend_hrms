@@ -67,11 +67,18 @@ def employee_list(request):
         joining_date = validated_data.get('joining_date')
 
         profile_image = request.FILES.get('profile_image')
-        if profile_image:
-            from .utils import has_face
-            if not has_face(profile_image):
+        from django.conf import settings
+        if profile_image and getattr(settings, 'ENABLE_FACE_VERIFICATION', False):
+            try:
+                from .utils import has_face
+                if not has_face(profile_image):
+                    return Response(
+                        {"message": "Image should contain Person face"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except Exception as e:
                 return Response(
-                    {"message": "Image should contain Person face"},
+                    {"message": "Face verification failed during image analysis.", "error": str(e)},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -98,6 +105,7 @@ def employee_list(request):
             with transaction.atomic():
                 user = User.objects.create_user(
                     username=username,
+                    email=email,
                     password=password
                 )
 
