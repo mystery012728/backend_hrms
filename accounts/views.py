@@ -23,30 +23,46 @@ from .serializers import LoginSerializer, LoginResponseSerializer
 @permission_classes([AllowAny])
 def login(request):
 
-    email = request.data.get('email')
-    password = request.data.get('password')
+    serializer = LoginSerializer(data=request.data)
+    if not serializer.is_valid():
+        errors = serializer.errors
+        first_field = next(iter(errors))
+        error_message = errors[first_field]
+        if isinstance(error_message, list):
+            error_message = error_message[0]
+        return Response({"message": str(error_message)}, status=status.HTTP_400_BAD_REQUEST)
 
-    username = None
-    try:
-        employee = Employee.objects.get(email=email)
-        if employee.user:
-            username = employee.user.username
-    except Employee.DoesNotExist:
-        try:
-            user_obj = User.objects.get(email=email)
-            username = user_obj.username
-        except User.DoesNotExist:
-            pass
+    username_or_email = serializer.validated_data.get('username_or_email')
+    password = serializer.validated_data.get('password')
 
+    # 1. Try to find the user
+    user_obj = User.objects.filter(username=username_or_email).first()
+    if not user_obj:
+        # Check by employee email
+        employee = Employee.objects.filter(email=username_or_email).first()
+        if employee and employee.user:
+            user_obj = employee.user
+        else:
+            # Check by user email directly
+            user_obj = User.objects.filter(email=username_or_email).first()
+
+    # 2. If user doesn't exist
+    if not user_obj:
+        return Response(
+            {"message": "Email or username does not exist"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # 3. Authenticate user
     user = authenticate(
-        username=username,
+        username=user_obj.username,
         password=password
     )
 
     if user is None:
         return Response(
-            {"message": "Invalid credentials"},
-            status=status.HTTP_401_UNAUTHORIZED
+            {"message": "Invalid password"},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
     refresh = RefreshToken.for_user(user)

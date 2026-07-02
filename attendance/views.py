@@ -224,6 +224,15 @@ def check_in(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    # Notify HR and Admin users
+    from notifications.utils import notify_hr_admins
+    notify_hr_admins(
+        company=employee.company,
+        title="Employee Checked In",
+        message=f"{employee.name} has checked in / arrived.",
+        image=attendance.selfie
+    )
+
     serializer = AttendanceSerializer(
         attendance,
         context={'request': request}
@@ -349,6 +358,15 @@ def check_out(request):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    # Notify HR and Admin users
+    from notifications.utils import notify_hr_admins
+    notify_hr_admins(
+        company=employee.company,
+        title="Employee Checked Out",
+        message=f"{employee.name} has checked out.",
+        image=attendance.checkout_selfie
+    )
 
     serializer = AttendanceSerializer(
         attendance,

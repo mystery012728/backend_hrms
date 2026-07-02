@@ -37,8 +37,34 @@ def employee_list(request):
 
     elif request.method == 'POST':
 
-        username = request.data.get('username')
-        password = request.data.get('password')
+        serializer = EmployeeCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            errors = serializer.errors
+            error_message = None
+            if "email" in errors:
+                error_message = errors["email"][0]
+            else:
+                first_field = next(iter(errors))
+                error_message = errors[first_field]
+                if isinstance(error_message, list):
+                    error_message = error_message[0]
+                elif isinstance(error_message, dict):
+                    first_nested = next(iter(error_message))
+                    error_message = error_message[first_nested][0]
+
+            return Response(
+                {"message": str(error_message)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        validated_data = serializer.validated_data
+        email = validated_data.get('email')
+        name = validated_data.get('name')
+        phone = validated_data.get('phone')
+        role = validated_data.get('role')
+        designation = validated_data.get('designation')
+        department = validated_data.get('department')
+        joining_date = validated_data.get('joining_date')
 
         profile_image = request.FILES.get('profile_image')
         if profile_image:
@@ -49,23 +75,74 @@ def employee_list(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        user = User.objects.create_user(
-            username=username,
-            password=password
-        )
+        # Auto-generate a unique username based on the email
+        import re
+        base_username = email.split('@')[0]
+        base_username = re.sub(r'[^a-zA-Z0-9_.-]', '', base_username)
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
 
-        employee = Employee.objects.create(
-            user=user,
-            company_id=request.data.get('company'),
-            name=request.data.get('name'),
-            email=request.data.get('email'),
-            phone=request.data.get('phone'),
-            role=request.data.get('role'),
-            designation=request.data.get('designation'),
-            department=request.data.get('department'),
-            joining_date=request.data.get('joining_date'),
-            profile_image=profile_image
-        )
+        # Auto-generate a secure random password
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        password = ''.join(secrets.choice(alphabet) for _ in range(10))
+
+        from django.db import transaction
+        from django.core.mail import send_mail
+
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    password=password
+                )
+
+                # Determine the company ID:
+                # If the logged-in user has an associated Employee profile with a company, use that.
+                # Otherwise, fall back to the company ID provided in the request data.
+                company_id = None
+                try:
+                    requesting_employee = Employee.objects.get(user=request.user)
+                    if requesting_employee.company:
+                        company_id = requesting_employee.company.id
+                except Employee.DoesNotExist:
+                    pass
+
+                if not company_id:
+                    company_id = request.data.get('company')
+
+                employee = Employee.objects.create(
+                    user=user,
+                    company_id=company_id,
+                    name=name,
+                    email=email,
+                    phone=phone,
+                    role=role,
+                    designation=designation,
+                    department=department,
+                    joining_date=joining_date,
+                    profile_image=profile_image
+                )
+
+                # Send email to the employee with their credentials
+                subject = "Welcome to HRMS - Your Account Credentials"
+                email_message = f"Hello {name},\n\nWelcome to HRMS! Your account has been successfully created.\n\nHere are your login credentials:\nUsername: {username}\nPassword: {password}\n\nPlease login and update your password.\n\nBest regards,\nHR Team"
+                send_mail(
+                    subject=subject,
+                    message=email_message,
+                    from_email="noreply@hrms.com",
+                    recipient_list=[email],
+                    fail_silently=False
+                )
+        except Exception as e:
+            return Response(
+                {"message": "Failed to create employee.", "error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         serializer = EmployeeSerializer(
             employee,

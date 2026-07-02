@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'holidays',
     'profiles',
     'drf_spectacular',
+    'notifications',
 ]
 
 MIDDLEWARE = [

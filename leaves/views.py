@@ -117,6 +117,15 @@ def apply_leave(request):
     for d in parsed_dates:
         LeaveDate.objects.create(leave=leave, date=d)
 
+    # Notify HR and Admin users
+    from notifications.utils import notify_hr_admins
+    notify_hr_admins(
+        company=employee.company,
+        title="New Leave Application",
+        message=f"{employee.name} has applied for leave.",
+        image=employee.profile_image
+    )
+
     serializer = LeaveSerializer(leave, context={'request': request})
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -234,6 +243,15 @@ def accept_leave(request, pk):
     leave.status = 'ACCEPTED'
     leave.save()
 
+    # Notify employee
+    from notifications.utils import create_notification
+    if leave.employee and leave.employee.user:
+        create_notification(
+            user=leave.employee.user,
+            title="Leave Request Approved",
+            message=f"Your leave application for {leave.total_days} day(s) has been accepted."
+        )
+
     serializer = LeaveSerializer(leave, context={'request': request})
     return Response(serializer.data)
 
@@ -282,6 +300,15 @@ def reject_leave(request, pk):
 
     leave.status = 'REJECTED'
     leave.save()
+
+    # Notify employee
+    from notifications.utils import create_notification
+    if leave.employee and leave.employee.user:
+        create_notification(
+            user=leave.employee.user,
+            title="Leave Request Rejected",
+            message=f"Your leave application for {leave.total_days} day(s) has been rejected."
+        )
 
     serializer = LeaveSerializer(leave, context={'request': request})
     return Response(serializer.data)

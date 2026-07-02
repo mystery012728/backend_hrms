@@ -23,9 +23,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 
 class EmployeeCreateSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
-    company = serializers.IntegerField(required=False, allow_null=True)
     name = serializers.CharField()
     email = serializers.EmailField()
     phone = serializers.CharField()
@@ -34,6 +31,11 @@ class EmployeeCreateSerializer(serializers.Serializer):
     department = serializers.CharField()
     joining_date = serializers.DateField()
     profile_image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate_email(self, value):
+        if Employee.objects.filter(email=value).exists():
+            raise serializers.ValidationError("An employee with this email already exists.")
+        return value
 
 
 class EmployeeUpdateSerializer(serializers.ModelSerializer):

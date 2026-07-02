@@ -40,6 +40,7 @@ urlpatterns = [
     path('leaves/', include('leaves.urls')),
     path('holidays/', include('holidays.urls')),
     path('profiles/', include('profiles.urls')),
+    path('notifications/', include('notifications.urls')),
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

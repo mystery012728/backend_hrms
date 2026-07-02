@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username_or_email = serializers.CharField()
     password = serializers.CharField()
 
 
