@@ -106,7 +106,8 @@ def send_otp(request):
         )
 
     # Verify user exists with this email
-    if not User.objects.filter(email=email).exists():
+    user_exists = User.objects.filter(email=email).exists() or Employee.objects.filter(email=email).exists()
+    if not user_exists:
         return Response(
             {"message": "User with this email does not exist"},
             status=status.HTTP_404_NOT_FOUND
@@ -218,8 +219,13 @@ def reset_password(request):
         )
 
     # Update password for user(s) with this email
-    users = User.objects.filter(email=email)
-    if not users.exists():
+    users = list(User.objects.filter(email=email))
+    employee_users = User.objects.filter(employee__email=email)
+    for u in employee_users:
+        if u not in users:
+            users.append(u)
+
+    if not users:
         return Response(
             {"message": "User not found"},
             status=status.HTTP_404_NOT_FOUND

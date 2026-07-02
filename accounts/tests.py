@@ -90,7 +90,7 @@ class ForgotPasswordAPITests(APITestCase):
 
         # Check user password has updated (try login)
         login_data = {
-            "email": "test@hrms.com",
+            "username_or_email": "test@hrms.com",
             "password": "new_secure_password"
         }
         login_response = self.client.post('/accounts/login/', login_data, format='json')
