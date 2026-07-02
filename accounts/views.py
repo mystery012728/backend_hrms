@@ -142,12 +142,18 @@ def send_otp(request):
             fail_silently=False
         )
     except Exception as e:
+        if getattr(settings, 'DEBUG', False):
+            return Response({
+                "message": "OTP generated (Email failed to send in DEBUG mode)",
+                "otp": otp,
+                "error": str(e)
+            })
         return Response(
             {
-                "message": "Failed to send email",
+                "message": "Failed to send email. Please check your SMTP configuration.",
                 "error": str(e)
             },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=status.HTTP_400_BAD_REQUEST
         )
 
     return Response({"message": "OTP sent successfully to your email"})
