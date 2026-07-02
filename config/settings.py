@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'profiles',
     'drf_spectacular',
     'notifications',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -166,14 +167,24 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# SMTP Server Configurations for real email sending
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'rajghag12728@gmail.com'
-EMAIL_HOST_PASSWORD = 'brabfdpelcjrliru'
-DEFAULT_FROM_EMAIL = 'rajghag12728@gmail.com'
-EMAIL_TIMEOUT = 5
+# Email configurations (supports Resend API or SMTP fallback)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+
+if RESEND_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {
+        "RESEND_API_KEY": RESEND_API_KEY,
+    }
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+else:
+    # Fallback to local SMTP / Gmail configurations
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'rajghag12728@gmail.com')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'brabfdpelcjrliru')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'rajghag12728@gmail.com')
+    EMAIL_TIMEOUT = 5
 
 ENABLE_FACE_VERIFICATION = os.environ.get('ENABLE_FACE_VERIFICATION', 'True').lower() == 'true'

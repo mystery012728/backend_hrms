@@ -14,3 +14,4 @@ tf_keras==2.16.0
 deepface==0.0.100
 pandas==3.0.3
 gdown==6.1.0
+django-anymail[resend]>=11.1
