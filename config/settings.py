@@ -167,10 +167,17 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email configurations (supports Resend API or SMTP fallback)
+# Email configurations (supports SendGrid, Resend, or SMTP fallback)
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 
-if RESEND_API_KEY:
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
+    ANYMAIL = {
+        "SENDGRID_API_KEY": SENDGRID_API_KEY,
+    }
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'rajghag12728@gmail.com')
+elif RESEND_API_KEY:
     EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
     ANYMAIL = {
         "RESEND_API_KEY": RESEND_API_KEY,
