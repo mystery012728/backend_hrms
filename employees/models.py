@@ -45,12 +45,5 @@ class Employee(models.Model):
       blank=True
     )
 
-    def save(self, *args, **kwargs):
-        # Sync email to the associated User if it exists
-        if self.user and self.user.email != self.email:
-            self.user.email = self.email
-            self.user.save(update_fields=['email'])
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return self.name
