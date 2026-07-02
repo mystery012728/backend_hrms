@@ -87,13 +87,17 @@ def create_employee_user_profile(sender, instance, created, **kwargs):
         instance.user = user
 
         # Send email with credentials
-        subject = "Welcome to HRMS - Your Account Credentials"
-        email_message = f"Hello {instance.name},\n\nWelcome to HRMS! Your account has been successfully created.\n\nHere are your login credentials:\nUsername: {username}\nPassword: {password}\n\nPlease login and update your password.\n\nBest regards,\nHR Team"
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com')
-        send_mail(
-            subject=subject,
-            message=email_message,
-            from_email=from_email,
-            recipient_list=[email],
-            fail_silently=False
-        )
+        try:
+            subject = "Welcome to HRMS - Your Account Credentials"
+            email_message = f"Hello {instance.name},\n\nWelcome to HRMS! Your account has been successfully created.\n\nHere are your login credentials:\nUsername: {username}\nPassword: {password}\n\nPlease login and update your password.\n\nBest regards,\nHR Team"
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com')
+            send_mail(
+                subject=subject,
+                message=email_message,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send welcome credentials email via signal to {email}: {e}")

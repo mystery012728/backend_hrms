@@ -132,10 +132,12 @@ def send_otp(request):
 
     # Send email
     try:
+        from django.conf import settings
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com')
         send_mail(
             subject="Your HRMS Password Reset OTP",
             message=f"Your OTP code is: {otp}. This code is valid for 10 minutes.",
-            from_email="noreply@hrms.com",
+            from_email=from_email,
             recipient_list=[email],
             fail_silently=False
         )

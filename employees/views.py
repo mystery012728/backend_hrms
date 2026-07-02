@@ -135,30 +135,42 @@ def employee_list(request):
                     joining_date=joining_date,
                     profile_image=profile_image
                 )
-
-                # Send email to the employee with their credentials
-                subject = "Welcome to HRMS - Your Account Credentials"
-                email_message = f"Hello {name},\n\nWelcome to HRMS! Your account has been successfully created.\n\nHere are your login credentials:\nUsername: {username}\nPassword: {password}\n\nPlease login and update your password.\n\nBest regards,\nHR Team"
-                send_mail(
-                    subject=subject,
-                    message=email_message,
-                    from_email="noreply@hrms.com",
-                    recipient_list=[email],
-                    fail_silently=False
-                )
         except Exception as e:
             return Response(
                 {"message": "Failed to create employee.", "error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Send email outside of the transaction block and handle exceptions gracefully
+        email_sent = True
+        try:
+            from django.conf import settings
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@hrms.com')
+            subject = "Welcome to HRMS - Your Account Credentials"
+            email_message = f"Hello {name},\n\nWelcome to HRMS! Your account has been successfully created.\n\nHere are your login credentials:\nUsername: {username}\nPassword: {password}\n\nPlease login and update your password.\n\nBest regards,\nHR Team"
+            send_mail(
+                subject=subject,
+                message=email_message,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Failed to send welcome credentials email: {e}")
+            email_sent = False
+
         serializer = EmployeeSerializer(
             employee,
             context={'request': request}
         )
 
+        response_data = serializer.data
+        if not email_sent:
+            response_data["warning"] = "Employee created successfully, but welcome email could not be sent. Please manually share credentials."
+
         return Response(
-            serializer.data,
+            response_data,
             status=status.HTTP_201_CREATED
         )
 
